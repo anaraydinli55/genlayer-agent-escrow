@@ -56,8 +56,13 @@ class AgentEscrowJudge(gl.Contract):
             raise gl.vm.UserError("Only the registered seller can submit delivery")
         if self.outcome != "PENDING":
             raise gl.vm.UserError("This case is no longer pending")
-        if len(delivery) == 0 or len(evidence) == 0:
+        if self.disputed:
+            raise gl.vm.UserError("Delivery cannot be changed after a dispute")
+        if self.delivery != "":
+            raise gl.vm.UserError("Delivery has already been submitted")
+        if len(delivery.strip()) == 0 or len(evidence.strip()) == 0:
             raise gl.vm.UserError("Delivery and evidence are required")
+
         self.delivery = delivery
         self.seller_evidence = evidence
 
@@ -69,8 +74,11 @@ class AgentEscrowJudge(gl.Contract):
             raise gl.vm.UserError("This case is no longer pending")
         if len(self.delivery) == 0:
             raise gl.vm.UserError("Seller has not submitted a delivery")
-        if len(objection) == 0 or len(evidence) == 0:
+        if self.disputed:
+            raise gl.vm.UserError("A dispute has already been opened")
+        if len(objection.strip()) == 0 or len(evidence.strip()) == 0:
             raise gl.vm.UserError("Objection and evidence are required")
+
         self.buyer_objection = objection
         self.buyer_evidence = evidence
         self.disputed = True
@@ -140,7 +148,9 @@ Do not decide based on sympathy, writing style, or claims unsupported by evidenc
             ),
         )
 
-        # Store the consensus result as a string. The UI/relay must treat
-        # anything other than BUYER or SELLER as a non-payment outcome.
+        # Reject any result outside the three permitted outcomes.
+        if result not in ("BUYER", "SELLER", "UNDETERMINED"):
+            raise gl.vm.UserError("Invalid adjudication result")
+
         self.outcome = result
         self.reasoning = "Consensus outcome recorded. The detailed evidence remains available in get_case()."

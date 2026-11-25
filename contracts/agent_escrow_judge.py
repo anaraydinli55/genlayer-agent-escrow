@@ -117,9 +117,10 @@ BUYER OBJECTION:
 BUYER EVIDENCE:
 {buyer_evidence}
 
-Return exactly one JSON object with these keys:
-"outcome": one of "BUYER", "SELLER", or "UNDETERMINED"
-"reasoning": a concise explanation grounded in the supplied information.
+Return exactly one label and nothing else:
+BUYER
+SELLER
+or UNDETERMINED
 
 Decision rules:
 - SELLER: the delivery is supported by evidence and materially satisfies
@@ -133,14 +134,13 @@ Do not decide based on sympathy, writing style, or claims unsupported by evidenc
         result = gl.eq_principle.prompt_comparative(
             evaluate_case,
             principle=(
-                'The "outcome" field must be exactly the same in both answers. '
-                'The "reasoning" must be consistent with the agreed criteria '
-                'and supplied evidence. If the evidence does not support a '
-                'clear result, the outcome must be "UNDETERMINED".'
+                'The returned label must match exactly. It must be BUYER, SELLER, or '
+                'UNDETERMINED. Judge the evidence against the agreed criteria. '
+                'If evidence is insufficient or contradictory, choose UNDETERMINED.'
             ),
         )
 
         # Store the consensus result as a string. The UI/relay must treat
         # anything other than BUYER or SELLER as a non-payment outcome.
         self.outcome = result
-        self.reasoning = "Consensus adjudication completed. Review the returned outcome and transaction record."
+        self.reasoning = "Consensus outcome recorded. The detailed evidence remains available in get_case()."
